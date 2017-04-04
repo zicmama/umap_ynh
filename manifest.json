@@ -1,4 +1,3 @@
-
 {
     "name": "umap",
     "id": "umap",
@@ -12,8 +11,8 @@
     "url": "https://umap.openstreetmap.fr/",
     "license": "AGPLv3",
     "maintainer": {
-        "name": "frju365",
-        "email": "win10@tutanota.com"
+        "name": "frju365, cyp",
+        "email": "win10@tutanota.com, cyp@rouquin.me"
     },
     "multi_instance": false,
     "services": [
@@ -41,6 +40,15 @@
                 "example": "/umap",
                 "default": "/umap"
             },
+            {
+                "name": "admin",
+                "type": "user",
+                "ask": {
+                    "en": "Choose the umap administrator (must be an existing YunoHost user)",
+                    "fr": "Choisissez un administrateur umap (doit être un utilisateur YunoHost)"
+                },
+                "example": "john"
+            },            
             {
                 "name": "is_public",
                 "ask": {

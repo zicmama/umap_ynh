@@ -1,34 +1,47 @@
 #!/bin/bash
-# Source app helpers
-source /usr/share/yunohost/helpers
-source .fonctions
+
+# Exit on command errors and treat unset variables as an error
 set -eu
+
+source .fonctions	# Loads the generic functions usually used in the script
+source /usr/share/yunohost/helpers # Source app helpers
+
+CLEAN_SETUP () {
+	# Clean installation residues that are not supported by the remove script.
+	# Clean hosts
+	echo ""
+}
+TRAP_ON	# Active trap to stop the script if an error is detected.
 
 # Retrieve arguments
 domain=$YNH_APP_ARG_DOMAIN
 path=$YNH_APP_ARG_PATH
+admin=$YNH_APP_ARG_ADMIN
 is_public=$YNH_APP_ARG_IS_PUBLIC
 
 app=$YNH_APP_INSTANCE_NAME
 
-# Source app helpers
-source /usr/share/yunohost/helpers
-
-script_dir=$PWD
-
 # Vérifie que les variables ne sont pas vides.
 CHECK_VAR "$app" "app name not set"
 CHECK_VAR "$script_dir" "script_dir not set"
+
+CHECK_USER "$admin"	# Check username
 
 CHECK_PATH	# Vérifie et corrige la syntaxe du path.
 CHECK_DOMAINPATH	# Vérifie la disponibilité du path et du domaine.
 
 CHECK_FINALPATH	# Vérifie que le dossier de destination n'est pas déjà utilisé.
 
+# Save app settings
+ynh_app_setting_set $app domain $domain
+ynh_app_setting_set $app path $path
+ynh_app_setting_set $app admin $admin
+ynh_app_setting_set $app is_public $is_public
+
 # Install dependency to convert tracks to a readable format for the browser
-sudo cp -a ../conf/umap.list /etc/apt/sources.list.d/
-sudo apt-get update
-sudo apt-get -t stretch -y install python3.5 python3.5-dev python-virtualenv uwsgi uwsgi-plugin-python3 postgresql-9.4 postgresql-9.4-postgis-2.1 postgresql-server-dev-9.4 libpq-dev
+# sudo cp -a ../conf/umap.list /etc/apt/sources.list.d/
+ynh_package_update
+ynh_package_install python3.4 python3.4-dev python3-pip python3-virtualenv uwsgi uwsgi-plugin-python3 postgresql-9.4 postgresql-9.4-postgis-2.1 postgresql-server-dev-9.4 libpq-dev
 
 # Prepare Umap to be installed
 sudo mkdir -p /srv/$app
@@ -49,24 +62,22 @@ sudo chown umap /srv/$app -R
 sudo chmod 755 /srv/$app -R 
         
 # Installation de "umap"
-sudo su -c "virtualenv /srv/$app/venv" $app
-sudo pip install $app-project
+sudo su -c "virtualenv -p /usr/bin/python3 /srv/$app/venv" $app
+sudo pip3 install $app-project
 sudo su -c "wget https://raw.githubusercontent.com/umap-project/umap/master/umap/settings/local.py.sample -O /srv/$app/local.py" $app
 sudo su -c "export UMAP_SETTINGS=/srv/$app/local.py" $app
-sudo su -c "umap migrate" $app
-sudo su -c "umap collectstatic" $app
-sudo su -c "umap storagei18n" $app
-sudo su -c "umap createsuperuser" $app  
+#sudo su -c "umap migrate" $app
+#sudo su -c "umap collectstatic" $app
+#sudo su -c "umap storagei18n" $app
+#sudo su -c "umap createsuperuser" $app  
 
-# PWD
-cd $script_dir
 # Copy Files
-sudo cp ./config/uwsgi_params /srv/$app/uwsgi_params
-sudo cp ./config/uwsgi.ini /srv/$app/uwsgi.ini
+sudo cp ../conf/uwsgi_params /srv/$app/uwsgi_params
+sudo cp ../conf/uwsgi.ini /srv/$app/uwsgi.ini
 
 # Config service
 sudo ln -s /srv/$app/uwsgi.ini /etc/uwsgi/apps-enabled/umap.ini
-sudo systemctl restart uwsgi nginx
+sudo systemctl restart uwsgi
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
 sed -i "s@YNH_WWW_PATH@$path@g" ../conf/nginx.conf
@@ -76,14 +87,11 @@ sudo cp ../conf/nginx.conf $nginxconf
 sudo chown root: $nginxconf
 sudo chmod 600 $nginxconf
 
-ynh_app_setting_set "$app" is_public "$is_public"
-if [ "$is_public" = "Yes" ];
+if [ "$is_public" = "No" ];
 then
-  ynh_app_setting_set "$app" unprotected_uris "/"
+	# Delete public access
+	ynh_app_setting_delete $app unprotected_uris
+	sudo yunohost app ssowatconf
 fi
 
-sudo service nginx reload
-sudo yunohost app ssowatconf
-
-
-
+sudo systemctl reload nginx
