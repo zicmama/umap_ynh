@@ -39,9 +39,9 @@ ynh_app_setting_set $app admin $admin
 ynh_app_setting_set $app is_public $is_public
 
 # Install dependency to convert tracks to a readable format for the browser
-# sudo cp -a ../conf/umap.list /etc/apt/sources.list.d/
 ynh_package_update
 ynh_package_install python3.4 python3.4-dev python3-pip python3-virtualenv uwsgi uwsgi-plugin-python3 postgresql-9.4 postgresql-9.4-postgis-2.1 postgresql-server-dev-9.4 libpq-dev
+
 
 # Prepare Umap to be installed
 sudo mkdir -p /srv/$app
