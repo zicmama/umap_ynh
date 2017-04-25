@@ -14,16 +14,27 @@ domain=$(ynh_app_setting_get $app domain)
 # TODO: Forbidden: delete yunohost moulinette, bad idea
 # sudo apt-get --purge remove -y python3.4 python3.4-dev python3-pip python3-virtualenv uwsgi uwsgi-plugin-python3 postgresql-9.4 postgresql-9.4-postgis-2.1 postgresql-server-dev-9.4 libpq-dev
 
-ynh_psql_drop_db umap
+ynh_psql_drop_role root
+ynh_psql_drop_role umap
 ynh_psql_drop_user umap
+ynh_psql_drop_db umap
+# ynh_psql_revoke_connect umap
+ynh_psql_drop_extension postgis
 
+# Delete directory application
+ynh_secure_remove "/opt/${app}"
+
+# remove nginx conf
+ynh_remove_nginx_config
+
+ynh_secure_remove "/etc/apt/sources.list.d/${app}.list"
+ynh_secure_remove "/etc/systemd/system/${app}.uwsgi.service"
+ynh_secure_remove "/etc/uwsgi/apps-enabled/${app}.uwsgi.ini"
+
+# Remove user
 sudo userdel -f $app
-SECURE_REMOVE '/var/www/$app'	# Delete directory application
-SECURE_REMOVE '/srv/$app'	# Delete directory application
-sudo rm -f /etc/nginx/conf.d/$domain.d/$app.conf
-sudo rm -f /etc/apt/sources.list.d/$app.list
-sudo rm -f /etc/uwsgi/apps-enabled/$app.ini
 
+sudo systemctl restart postgresql
 sudo systemctl reload nginx
 
 echo -e "\e[0m"	# Restore normal color

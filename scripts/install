@@ -23,7 +23,6 @@ app=$YNH_APP_INSTANCE_NAME
 
 # Vérifie que les variables ne sont pas vides.
 CHECK_VAR "$app" "app name not set"
-CHECK_VAR "$script_dir" "script_dir not set"
 
 CHECK_USER "$admin"	# Check username
 
@@ -40,12 +39,11 @@ ynh_app_setting_set $app is_public $is_public
 
 # Install dependency to convert tracks to a readable format for the browser
 ynh_package_update
-ynh_package_install python3.4 python3.4-dev python3-pip python3-virtualenv uwsgi uwsgi-plugin-python3 postgresql-9.4 postgresql-9.4-postgis-2.1 postgresql-server-dev-9.4 libpq-dev
-
+ynh_package_install postgresql postgresql-server-dev-9.4 postgis python-pip git python-virtualenv virtualenvwrapper python3-dev python3-setuptools libtiff5-dev libjpeg62-turbo-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk python3.4-dev python-dev python-imaging
 
 # Prepare Umap to be installed
-sudo mkdir -p /srv/$app
-sudo useradd -N umap -d /srv/$app/
+sudo mkdir -p /opt/$app
+sudo useradd -N $app -d /opt/$app/
 
 # Setting up the database
 dbname=$app
@@ -54,38 +52,72 @@ dbuser=$app
 # Generate random password
 dbpass=$(ynh_string_random)
 ##### dbpass
-ynh_psql_create_db "$dbname" "$dbuser" "$dbpass"
-sudo su -c "psql" postgres <<< \
-        "CREATE EXTENSION postgis;"
-        
-sudo chown umap /srv/$app -R
-sudo chmod 755 /srv/$app -R 
-        
+# ynh_psql_create_db "$dbname" "$dbuser" "$dbpass"
+# ynh_psql_create_extension postgis
+
+# Create User
+sudo -u postgres createuser $app
+
+#Create a postgresql database
+sudo -u postgres createdb $app -O $app
+
+# Activate PostGIS extension
+#sudo -u postgres psql umap -c "CREATE EXTENSION postgis"
+ynh_psql_create_extension postgis
+
+# Create role root
+ynh_psql_create_role root
+
+sudo mkdir -p $final_path/venv
+sudo chown -R umap: $final_path
+
 # Installation de "umap"
-sudo su -c "virtualenv -p /usr/bin/python3 /srv/$app/venv" $app
-sudo pip3 install $app-project
-sudo su -c "wget https://raw.githubusercontent.com/umap-project/umap/master/umap/settings/local.py.sample -O /srv/$app/local.py" $app
-sudo su -c "export UMAP_SETTINGS=/srv/$app/local.py" $app
-#sudo su -c "umap migrate" $app
-#sudo su -c "umap collectstatic" $app
-#sudo su -c "umap storagei18n" $app
-#sudo su -c "umap createsuperuser" $app  
+sudo su $app -c "virtualenv -p /usr/bin/python3 --distribute --no-site-packages ${final_path}/venv"
+sudo bash -c "source ${final_path}/venv/bin/activate && pip3 install umap-project && pip3 install uwsgi"
+
+sudo bash -c "source ${final_path}/venv/bin/activate && wget https://raw.githubusercontent.com/umap-project/umap/master/umap/settings/local.py.sample -O ${final_path}/venv/local.py"
+
+# Replace variables configuration 
+secret=$(ynh_string_random 24)
+sudo sed -i "s@SECRET_KEY = '!!change me!!'@SECRET_KEY = '${secret}'@g" "${final_path}/venv/local.py"
+sudo sed -i "s@STATIC_ROOT = '/home/srv/var/static'@STATIC_ROOT = '${final_path}/static'@g" "${final_path}/venv/local.py"
+sudo sed -i "s@MEDIA_ROOT = '/home/srv/umap/var/data'@MEDIA_ROOT = '${final_path}/data'@g" "${final_path}/venv/local.py"
+# sudo sed -i 's,'\('You', 'your@email'\)','\('${admin}', '${admin}'\@'${domain}'\)',' "${final_path}/venv/local.py"
+
+# Create STATIC & MEDIA dir
+sudo mkdir "${final_path}/static"
+sudo mkdir "${final_path}/data"
+
+# export env
+# sudo bash -c "source ${final_path}/venv/bin/activate && env = UMAP_SETTINGS=${final_path}/venv/local.py"
+
+# Install umap
+# TODO: createsuperuser not correct
+sudo bash -c "source ${final_path}/venv/bin/activate && export UMAP_SETTINGS=${final_path}/venv/local.py && umap migrate && echo yes | umap collectstatic && umap storagei18n && echo 'from django.contrib.auth.models import User; User.objects.create_superuser('${admin}', '${admin}@${domain}', 'testpwd')' | umap createsuperuser"
 
 # Copy Files
-sudo cp ../conf/uwsgi_params /srv/$app/uwsgi_params
-sudo cp ../conf/uwsgi.ini /srv/$app/uwsgi.ini
+sudo cp ../conf/uwsgi_params $final_path/uwsgi_params
+sudo cp ../conf/uwsgi.ini $final_path/uwsgi.ini
+sudo sed -i "s@__APP__@$app@g" $final_path/uwsgi.ini
 
 # Config service
-sudo ln -s /srv/$app/uwsgi.ini /etc/uwsgi/apps-enabled/umap.ini
-sudo systemctl restart uwsgi
+sudo ln -s $final_path/uwsgi.ini /etc/uwsgi/apps-enabled/umap.uwsgi.ini
+
+# Add script systemd
+# sudo cp ../conf/umap.uwsgi.service /etc/systemd/system/umap.uwsgi.service
+# sudo chown root: /etc/systemd/system/umap.uwsgi.service
+# sudo sed -i "s@__APP__@$app@g" /etc/systemd/system/umap.uwsgi.service
+# sudo sed -i "s@__FINALPATH__@$final_path/@g" /etc/systemd/system/umap.uwsgi.service
+
+# Start service
+sudo systemctl start uwsgi
+
+# Add uwsgi & mediadrop as a service
+# sudo yunohost service add umap.uwsgi
+# sudo yunohost service add umap
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
-sed -i "s@YNH_WWW_PATH@$path@g" ../conf/nginx.conf
-sed -i "s@YNH_WWW_ALIAS@$final_path/@g" ../conf/nginx.conf
-nginxconf=/etc/nginx/conf.d/$domain.d/$app.conf
-sudo cp ../conf/nginx.conf $nginxconf
-sudo chown root: $nginxconf
-sudo chmod 600 $nginxconf
+ynh_nginx_config
 
 if [ "$is_public" = "No" ];
 then
@@ -94,4 +126,4 @@ then
 	sudo yunohost app ssowatconf
 fi
 
-sudo systemctl reload nginx
+# sudo systemctl reload nginx
