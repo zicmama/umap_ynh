@@ -110,7 +110,9 @@ if [ "$is_public" = "No" ];
 then
 	# Delete public access
 	ynh_app_setting_delete $app unprotected_uris
+	# Reload SSO
 	sudo yunohost app ssowatconf
 fi
 
+# Reload nginx
 sudo systemctl reload nginx

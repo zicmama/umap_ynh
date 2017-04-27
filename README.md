@@ -1,5 +1,12 @@
 # UMap for Yunohost
 
+[![Latest Version](https://img.shields.io/badge/version-_--_-green.svg?style=flat)](https://github.com/YunoHost-Apps/umap_ynh/releases)
+[![Status](https://img.shields.io/badge/status-testing-yellow.svg?style=flat)](https://github.com/YunoHost-Apps/umap_ynh/milestones)
+[![Dependencies](https://img.shields.io/badge/dependencies-includes-lightgrey.svg?style=flat)](https://github.com/YunoHost-Apps/umap_ynh#dependencies)
+[![GitHub license](https://img.shields.io/badge/license-GPLv3-blue.svg?style=flat)](https://raw.githubusercontent.com/YunoHost-Apps/umap_ynh/master/LICENSE)
+[![Yunohost version](https://img.shields.io/badge/yunohost-2.5.6_tested-orange.svg?style=flat)](https://github.com/YunoHost/yunohost)
+[![GitHub issues](https://img.shields.io/github/issues/YunoHost-Apps/umap_ynh.svg?style=flat)](https://github.com/YunoHost-Apps/umap_ynh/issues)
+
 ## UMap c'est quoi ?
 
 UMap vous permet de créer des cartes avec des couches OpenStreetMap en une minute et de les intégrer dans votre site. Parce que nous pensons que plus d'OSM sera utilisé, plus OSM sera "guéri". Il utilise [django-leaflet-storage](https://github.com/umap-project/django-leaflet-storage) et [Leaflet.Storage](https://github.com/umap-project/Leaflet.Storage), construit sur le dessus de Django et Leaflet.
@@ -31,6 +38,6 @@ Source: [UMap](http://wiki.openstreetmap.org/wiki/UMap)
 ## TODO
 
 - [x] Add language
+- [x] Create scripts remove/upgrade/restore
 - [ ] Use helper ynh_replace_string
-- [ ] Create scripts remove/upgrade/restore
 - [ ] Add token Github + Bitbucket + Twitter + OSM
