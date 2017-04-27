@@ -17,6 +17,7 @@ TRAP_ON	# Active trap to stop the script if an error is detected.
 domain=$YNH_APP_ARG_DOMAIN
 path=$YNH_APP_ARG_PATH
 admin=$YNH_APP_ARG_ADMIN
+language=$YNH_APP_ARG_LANGUAGE
 is_public=$YNH_APP_ARG_IS_PUBLIC
 
 app=$YNH_APP_INSTANCE_NAME
@@ -35,6 +36,7 @@ CHECK_FINALPATH	# Chech destination directory is not exist.
 ynh_app_setting_set $app domain $domain
 ynh_app_setting_set $app path $path
 ynh_app_setting_set $app admin $admin
+ynh_app_setting_set $app language $language
 ynh_app_setting_set $app is_public $is_public
 
 # Install dependency to convert tracks to a readable format for the browser
@@ -65,12 +67,14 @@ sudo bash -c "source ${final_path}/venv/bin/activate && wget https://raw.githubu
 
 # Replace variables configuration 
 secret=$(ynh_string_random 24)
+language="$(echo $language | head -c 2)"
 sudo sed -i "s@You@$admin@g" "${final_path}/venv/local.py"
 sudo sed -i "s@your\@email@$admin\@$domain@g" "${final_path}/venv/local.py"
 sudo sed -i "s@SECRET_KEY = '!!change me!!'@SECRET_KEY = '${secret}'@g" "${final_path}/venv/local.py"
 sudo sed -i "s@STATIC_ROOT = '/home/srv/var/static'@STATIC_ROOT = '${final_path}/static'@g" "${final_path}/venv/local.py"
 sudo sed -i "s@MEDIA_ROOT = '/home/srv/umap/var/data'@MEDIA_ROOT = '${final_path}/data'@g" "${final_path}/venv/local.py"
 sudo sed -i "s@UMAP_DEMO_SITE = True@UMAP_DEMO_SITE = False@g" "${final_path}/venv/local.py"
+sudo sed -i "s@LANGUAGE_CODE = 'en'@LANGUAGE_CODE = '${language}'@g" "${final_path}/venv/local.py"
 
 # Create STATIC & MEDIA dir
 sudo mkdir "${final_path}/static"

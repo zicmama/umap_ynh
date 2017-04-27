@@ -48,7 +48,16 @@
                     "fr": "Choisissez un administrateur umap (doit être un utilisateur YunoHost)"
                 },
                 "example": "john"
-            },            
+            }, 
+            {
+                "name": "language",
+                "ask": {
+                    "en": "Choose the application language",
+                    "fr": "Choisissez la langue de l'application"
+                },
+                "choices": ["en_EN", "fr_FR"],
+                "default": "fr_FR"
+            },           
             {
                 "name": "is_public",
                 "ask": {

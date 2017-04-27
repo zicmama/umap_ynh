@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ynh_version="2.4"
+ynh_version="2.5"
 
 YNH_VERSION () {	# Returns the version number of the Yunohost moulinette
 	ynh_version=$(sudo yunohost -v | grep "moulinette:" | cut -d' ' -f2 | cut -d'.' -f1,2)
@@ -66,6 +66,21 @@ CHECK_FINALPATH () {	# Vérifie que le dossier de destination n'est pas déjà u
 	fi
 }
 
+# Substitute/replace a string by another in a file
+#
+# usage: ynh_replace_string match_string replace_string target_file
+# | arg: match_string - String to be searched and replaced in the file
+# | arg: replace_string - String that will replace matches
+# | arg: target_file - File in which the string will be replaced.
+ynh_replace_string () {
+	delimit=@
+	match_string=${1//${delimit}/"\\${delimit}"}	# Escape the delimiter if it's in the string.
+	replace_string=${2//${delimit}/"\\${delimit}"}
+	workfile=$3
+
+	sudo sed --in-place "s${delimit}${match_string}${delimit}${replace_string}${delimit}g" "$workfile"
+}
+
 # Remove a file or a directory securely
 #
 # usage: ynh_secure_remove path_to_remove
@@ -94,6 +109,7 @@ ynh_secure_remove () {
   fi
 }
 
+# Add config nginx
 ynh_nginx_config () {
 	finalnginxconf="/etc/nginx/conf.d/$domain.d/$app.conf"
 	ynh_compare_checksum_config "$finalnginxconf" 1
@@ -121,6 +137,7 @@ ynh_nginx_config () {
 	sudo systemctl reload nginx
 }
 
+# Remove config nginx
 ynh_remove_nginx_config () {
 	ynh_secure_remove "/etc/nginx/conf.d/$domain.d/$app.conf"
 	sudo systemctl reload nginx
