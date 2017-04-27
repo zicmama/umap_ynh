@@ -30,7 +30,7 @@ Source: [UMap](http://wiki.openstreetmap.org/wiki/UMap)
 
 ## TODO
 
-[x] Add language
-[] Use helper ynh_replace_string
-[] Create scripts remove/upgrade/restore
-[] Add token Github + Bitbucket + Twitter + OSM
+- [x] Add language
+- [ ] Use helper ynh_replace_string
+- [ ] Create scripts remove/upgrade/restore
+- [ ] Add token Github + Bitbucket + Twitter + OSM
