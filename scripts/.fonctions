@@ -216,8 +216,7 @@ ynh_psql_create_db_without_password() {
 # | arg: user - the user name to create
 # | arg: pwd - the password to identify user by
 ynh_psql_create_user() {
-	sudo su -c "psql" postgres <<< \
-	"CREATE USER ${1} WITH PASSWORD '${2}';"
+	sudo su -c "createuser -s ${1}" postgres
 }
 
 # Create a database and grant optionnaly privilegies to a user
@@ -230,7 +229,11 @@ ynh_psql_create_db() {
 	db=$1
 	# grant all privilegies to user
 	if [[ $# -gt 1 ]]; then
-		ynh_psql_create_user ${2} "${3}"
+		if [[ $# -lt 3 ]]; then
+			ynh_psql_create_user ${2}
+		else
+			ynh_psql_create_user ${2} "${3}"
+		fi
 		sudo su -c "createdb -O ${2} $db" postgres
 	else
 		sudo su -c "createdb $db" postgres
