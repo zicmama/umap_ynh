@@ -1,88 +1,116 @@
 #!/bin/bash
-# Source app helpers
-source /usr/share/yunohost/helpers
-source .fonctions
+
+# Exit on command errors and treat unset variables as an error
 set -eu
+
+source .fonctions	# Loads the generic functions usually used in the script
+source /usr/share/yunohost/helpers # Source app helpers
+
+CLEAN_SETUP () {
+	# Clean installation residues that are not supported by the remove script.
+	# Clean hosts
+	echo ""
+}
+TRAP_ON	# Active trap to stop the script if an error is detected.
 
 # Retrieve arguments
 domain=$YNH_APP_ARG_DOMAIN
 path=$YNH_APP_ARG_PATH
+admin=$YNH_APP_ARG_ADMIN
+language=$YNH_APP_ARG_LANGUAGE
 is_public=$YNH_APP_ARG_IS_PUBLIC
 
 app=$YNH_APP_INSTANCE_NAME
 
-# Source app helpers
-source /usr/share/yunohost/helpers
-
-script_dir=$PWD
-
-# Vérifie que les variables ne sont pas vides.
+# Check variable is not empty
 CHECK_VAR "$app" "app name not set"
-CHECK_VAR "$script_dir" "script_dir not set"
 
-CHECK_PATH	# Vérifie et corrige la syntaxe du path.
-CHECK_DOMAINPATH	# Vérifie la disponibilité du path et du domaine.
+CHECK_USER "$admin"	# Check username
 
-CHECK_FINALPATH	# Vérifie que le dossier de destination n'est pas déjà utilisé.
+CHECK_PATH	# Check and fixed path.
+CHECK_DOMAINPATH	# Check disponibility for path and domain.
+
+CHECK_FINALPATH	# Chech destination directory is not exist.
+
+# Save app settings
+ynh_app_setting_set $app domain $domain
+ynh_app_setting_set $app path $path
+ynh_app_setting_set $app admin $admin
+ynh_app_setting_set $app language $language
+ynh_app_setting_set $app is_public $is_public
 
 # Install dependency to convert tracks to a readable format for the browser
-sudo apt-get update
-sudo apt-get install postgresql postgresql-server-dev-9.4 postgis python-pip git python-virtualenv virtualenvwrapper python3-dev python3-setuptools libtiff5-dev libjpeg62-turbo-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk python3.4-dev python-dev python-imaging
+ynh_package_update
+ynh_package_install postgresql postgresql-server-dev-9.4 postgis python-pip git python-virtualenv virtualenvwrapper python3-dev python3-setuptools libtiff5-dev libjpeg62-turbo-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python-tk python3.4-dev python-dev python-imaging
 
 # Prepare Umap to be installed
-sudo mkdir -p /srv/$app
-sudo useradd -N umap -d /srv/$app/
+sudo mkdir -p /opt/$app
+sudo useradd -N $app -d /opt/$app/
 
-# Setting up the database
-dbname=$app
-dbuser=$app
+#Create a postgresql database & superuser
+ynh_psql_create_db $app $app
 
-# Generate random password
-dbpass=$(ynh_string_random)
-##### dbpass
-ynh_psql_create_db "$dbname" "$dbuser" "$dbpass"
-sudo su -c "psql" postgres <<< \
-        "CREATE EXTENSION postgis;"
-        
-sudo chown umap /srv/$app -R
-sudo chmod 755 /srv/$app -R 
-        
+# Activate PostGIS extension
+ynh_psql_create_extension postgis
+
+# Create role root & umap
+ynh_psql_create_role root
+
+sudo mkdir -p $final_path/venv
+sudo chown -R umap: $final_path
+
 # Installation de "umap"
-sudo su -c "virtualenv /srv/$app/venv" $app
-sudo pip install $app-project
-sudo su -c "wget https://raw.githubusercontent.com/umap-project/umap/master/umap/settings/local.py.sample -O /srv/$app/local.py" $app
-sudo su -c "export UMAP_SETTINGS=/srv/$app/local.py" $app
-sudo su -c "umap migrate" $app
-sudo su -c "umap collectstatic" $app
-sudo su -c "umap storagei18n" $app
-sudo su -c "umap createsuperuser" $app  
+sudo su $app -c "virtualenv -p /usr/bin/python3 --distribute --no-site-packages ${final_path}/venv"
+sudo bash -c "source ${final_path}/venv/bin/activate && pip3 install umap-project && pip3 install uwsgi"
 
-# PWD
-cd $script_dir
+sudo bash -c "source ${final_path}/venv/bin/activate && wget https://raw.githubusercontent.com/umap-project/umap/master/umap/settings/local.py.sample -O ${final_path}/venv/local.py"
+
+# Replace variables configuration 
+secret=$(ynh_string_random 24)
+language="$(echo $language | head -c 2)"
+sudo sed -i "s@You@$admin@g" "${final_path}/venv/local.py"
+sudo sed -i "s@your\@email@$admin\@$domain@g" "${final_path}/venv/local.py"
+sudo sed -i "s@SECRET_KEY = '!!change me!!'@SECRET_KEY = '${secret}'@g" "${final_path}/venv/local.py"
+sudo sed -i "s@STATIC_ROOT = '/home/srv/var/static'@STATIC_ROOT = '${final_path}/static'@g" "${final_path}/venv/local.py"
+sudo sed -i "s@MEDIA_ROOT = '/home/srv/umap/var/data'@MEDIA_ROOT = '${final_path}/data'@g" "${final_path}/venv/local.py"
+sudo sed -i "s@UMAP_DEMO_SITE = True@UMAP_DEMO_SITE = False@g" "${final_path}/venv/local.py"
+sudo sed -i "s@LANGUAGE_CODE = 'en'@LANGUAGE_CODE = '${language}'@g" "${final_path}/venv/local.py"
+
+# Create STATIC & MEDIA dir
+sudo mkdir "${final_path}/static"
+sudo mkdir "${final_path}/data"
+
+# export env
+# sudo bash -c "source ${final_path}/venv/bin/activate && env = UMAP_SETTINGS=${final_path}/venv/local.py"
+
+# Install umap
+sudo bash -c "source ${final_path}/venv/bin/activate && export UMAP_SETTINGS=${final_path}/venv/local.py && umap migrate && echo yes | umap collectstatic && umap storagei18n"
+# Create superuser
+sudo bash -c "source ${final_path}/venv/bin/activate && export UMAP_SETTINGS=${final_path}/venv/local.py && umap createsuperuser --username ${admin} --email ${admin}@${domain} --noinput"
+
 # Copy Files
-sudo cp ./config/uwsgi_params /srv/$app/uwsgi_params
-sudo cp ./config/uwsgi.ini /srv/$app/uwsgi.ini
+sudo cp ../conf/uwsgi_params $final_path/uwsgi_params
+sudo cp ../conf/uwsgi.ini $final_path/uwsgi.ini
+sudo sed -i "s@__APP__@$app@g" $final_path/uwsgi.ini
 
 # Config service
-sudo ln -s /srv/$app/uwsgi.ini /etc/uwsgi/apps-enabled/umap.ini
-sudo systemctl restart uwsgi nginx
+sudo ln -s $final_path/uwsgi.ini /etc/uwsgi/apps-enabled/umap.uwsgi.ini
+
+# Start service
+sudo systemctl enable uwsgi
+sudo systemctl restart uwsgi
+
+# Add umap.uwsgi as a service
+sudo yunohost service add umap.uwsgi
 
 # Modify Nginx configuration file and copy it to Nginx conf directory
-sed -i "s@YNH_WWW_PATH@$path@g" ../conf/nginx.conf
-sed -i "s@YNH_WWW_ALIAS@$final_path/@g" ../conf/nginx.conf
-nginxconf=/etc/nginx/conf.d/$domain.d/$app.conf
-sudo cp ../conf/nginx.conf $nginxconf
-sudo chown root: $nginxconf
-sudo chmod 600 $nginxconf
+ynh_nginx_config
 
-ynh_app_setting_set "$app" is_public "$is_public"
-if [ "$is_public" = "Yes" ];
+if [ "$is_public" = "No" ];
 then
-  ynh_app_setting_set "$app" unprotected_uris "/"
+	# Delete public access
+	ynh_app_setting_delete $app unprotected_uris
+	sudo yunohost app ssowatconf
 fi
 
-sudo service nginx reload
-sudo yunohost app ssowatconf
-
-
-
+sudo systemctl reload nginx

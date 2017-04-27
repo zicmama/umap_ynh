@@ -1,13 +1,45 @@
 #!/bin/bash
 
-app=$YNH_APP_INSTANCE_NAME
+# Exit on command errors and treat unset variables as an error
 set -u
-# Source app helpers
-source /usr/share/yunohost/helpers
+
+source .fonctions	# Loads the generic functions usually used in the script
+source /usr/share/yunohost/helpers # Source app helpers
+
+# Get multi-instances specific variables
+app=$YNH_APP_INSTANCE_NAME
 
 domain=$(ynh_app_setting_get $app domain)
 
-sudo rm -rf /srv/umap/
-sudo rm -f /etc/nginx/conf.d/$domain.d/$app.conf
+# TODO: Forbidden: delete yunohost moulinette, bad idea
+# sudo apt-get --purge remove -y python3.4 python3.4-dev python3-pip python3-virtualenv uwsgi uwsgi-plugin-python3 postgresql-9.4 postgresql-9.4-postgis-2.1 postgresql-server-dev-9.4 libpq-dev
 
-sudo service nginx reload
+ynh_psql_drop_db umap
+ynh_psql_drop_extension postgis
+ynh_psql_drop_role umap
+ynh_psql_drop_role root
+
+sudo systemctl disable uwsgi
+
+# Delete service on Yunohost monitoring
+if sudo yunohost service status | grep -q umap.uwsgi
+then
+	echo "Remove mediadrop service"
+	sudo yunohost service remove umap.uwsgi
+fi
+
+ynh_secure_remove "/etc/uwsgi/apps-enabled/${app}.uwsgi.ini"
+
+# Delete directory application
+ynh_secure_remove "/opt/${app}"
+
+# remove nginx conf
+ynh_remove_nginx_config
+
+# Remove user
+sudo userdel -f $app
+
+sudo systemctl restart postgresql
+sudo systemctl reload nginx
+
+echo -e "\e[0m"	# Restore normal color
