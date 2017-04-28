@@ -37,8 +37,8 @@
                     "en": "Choose a path for umap",
                     "fr": "Choisissez un chemin pour umap"
                 },
-                "example": "/umap",
-                "default": "/umap"
+                "example": "/",
+                "default": "/"
             },
             {
                 "name": "admin",
