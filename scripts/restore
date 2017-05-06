@@ -87,11 +87,14 @@ sudo systemctl restart uwsgi
 # Add umap.uwsgi as a service
 sudo yunohost service add umap.uwsgi
 
-if [ "$is_public" = "No" ];
-then
-	# Delete public access
+# Set ssowat config
+if [[ $is_public -eq 0 ]]; then
 	ynh_app_setting_delete $app unprotected_uris
 	sudo yunohost app ssowatconf
 fi
 
+# Reload ssowat
+sudo yunohost app ssowatconf
+
+# Reload Nginx
 sudo systemctl reload nginx

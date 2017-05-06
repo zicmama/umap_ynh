@@ -106,11 +106,9 @@ sudo yunohost service add umap.uwsgi
 # Modify Nginx configuration file and copy it to Nginx conf directory
 ynh_nginx_config
 
-if [ "$is_public" = "No" ];
-then
-	# Delete public access
+# Set ssowat config
+if [[ $is_public -eq 0 ]]; then
 	ynh_app_setting_delete $app unprotected_uris
-	# Reload SSO
 	sudo yunohost app ssowatconf
 fi
 
