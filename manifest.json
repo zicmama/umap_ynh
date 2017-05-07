@@ -37,8 +37,8 @@
                     "en": "Choose a path for umap",
                     "fr": "Choisissez un chemin pour umap"
                 },
-                "example": "/umap",
-                "default": "/umap"
+                "example": "/",
+                "default": "/"
             },
             {
                 "name": "admin",
@@ -60,12 +60,13 @@
             },           
             {
                 "name": "is_public",
+                "type": "boolean",
                 "ask": {
                     "en": "Is it a public umap site ?",
                     "fr": "Est-ce un site public ?"
                 },
-                "choices": ["Yes", "No"],
-                "default": "Yes"
+                "choices": ["true", "false"],
+                "default": "true"
             }
         ]
     }

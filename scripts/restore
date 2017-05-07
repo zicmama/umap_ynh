@@ -1,0 +1,100 @@
+#!/bin/bash
+# This restore script is adapted to Yunohost >=2.4
+
+# Exit on command errors and treat unset variables as an error
+set -eu
+
+if [ ! -e .fonctions ]; then
+	# Get file fonction if not been to the current directory
+	sudo cp ../settings/scripts/.fonctions ./.fonctions
+	sudo chmod a+rx .fonctions
+fi
+# Loads the generic functions usually used in the script
+source .fonctions
+# Source app helpers
+source /usr/share/yunohost/helpers
+
+# The parameter $app is the id of the app instance ex: ynhexample__2
+app=$YNH_APP_INSTANCE_NAME
+
+# Get old parameter of the app
+domain=$(ynh_app_setting_get $app domain)
+path=$(ynh_app_setting_get $app path)
+is_public=$(ynh_app_setting_get $app is_public)
+
+# Check domain/path availability
+sudo yunohost app checkurl "${domain}${path}" -a "$app" \
+    || ynh_die "Path not available: ${domain}${path}"
+
+# Check $final_path
+final_path="/opt/${app}"
+if [ -d $final_path ]; then
+	ynh_die "There is already a directory: $final_path"
+fi
+
+# Check configuration files nginx
+nginx_conf="/etc/nginx/conf.d/${domain}.d/${app}.conf"
+if [ -f $nginx_conf ]; then
+	ynh_die "The NGINX configuration already exists at '${nginx_conf}'. 
+	You should safely delete it before restoring this app."
+fi
+
+# Restore uwsgi
+uwsgi="/etc/uwsgi/apps-enabled/${app}.uwsgi.ini"
+if [ -f "${uwsgi}" ]; then
+	ynh_die "The UWSGI configuration already exists at '${uwsgi}'. 
+	You should safely delete it before restoring this app."
+fi
+
+# Create user unix
+sudo useradd -N $app -d /opt/$app/
+
+ # Restore sources & data
+sudo cp -a ./sources "$final_path"
+
+# Set permissions
+sudo chown -R $app: "$final_path"
+
+# Acl for Postgres user
+# sudo setfacl -R -m u:postgres:r $YNH_APP_BACKUP_DIR || true
+
+pushd $final_path
+
+#Create a postgresql database & superuser
+ynh_psql_create_db $app $app
+
+# Activate PostGIS extension
+ynh_psql_create_extension postgis
+
+# Create role root & umap
+ynh_psql_create_role root
+
+# Restore db
+sudo pg_dump --role=umap -U root umap < $YNH_APP_BACKUP_DIR/umap_db.sql
+
+popd
+
+# Create symlink for uwsgi
+sudo ln -s $final_path/uwsgi.ini /etc/uwsgi/apps-enabled/umap.uwsgi.ini || true
+
+# Restore nginx configuration files
+sudo cp -a ./nginx.conf   "$nginx_conf"
+
+# Start service
+sudo systemctl enable uwsgi
+sudo systemctl restart uwsgi
+
+# Add umap.uwsgi as a service
+sudo yunohost service add umap.uwsgi
+
+# Set ssowat config
+if [[ $is_public -eq 0 ]]; then
+	ynh_app_setting_delete $app unprotected_uris
+	sudo yunohost app ssowatconf
+fi
+
+# Reload ssowat
+sudo yunohost app ssowatconf
+
+# Reload Nginx
+sudo systemctl reload nginx

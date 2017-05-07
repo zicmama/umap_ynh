@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Exit on command errors and treat unset variables as an error
+set -eu
+
+# Loads the generic functions usually used in the script
+source .fonctions
+# Source YunoHost helpers
+source /usr/share/yunohost/helpers
+
+# See comments in install script
+app=$YNH_APP_INSTANCE_NAME
+
+# Retrieve app settings
+domain=$(ynh_app_setting_get "$app" domain)
+path=$(ynh_app_setting_get "$app" path)
+admin=$(ynh_app_setting_get "$app" admin)
+language=$(ynh_app_setting_get "$app" language)
+
+CHECK_PATH	# Checks and corrects the syntax of the path.
+
+# Check if admin is not null
+if [[ "$admin" = "" || "$language" = "" ]]; then
+    echo "Unable to upgrade, please contact support"
+    ynh_die
+fi
+
+final_path=/opt/$app
+
+# Modify Nginx configuration file and copy it to Nginx conf directory
+ynh_nginx_config
+
+# Stop uwsgi Services
+sudo systemctl stop uwsgi
+
+# Update umap & uwsgi
+sudo bash -c "source ${final_path}/venv/bin/activate && pip3 install umap-project --upgrade && pip3 install uwsgi --upgrade"
+
+# Set ssowat config
+if [ "$is_public" = "Yes" ]; then
+	ynh_app_setting_set $app is_public 1 # Fix booléen is_public 
+	is_public=1
+elif [ "$is_public" = "No" ]; then
+	ynh_app_setting_set $app is_public 0
+ 	is_public=0
+fi
+
+# Reload ssowat
+sudo yunohost app ssowatconf
+
+# Reload Nginx
+sudo systemctl reload nginx
+
+# Restart umap
+sudo systemctl restart uwsgi
