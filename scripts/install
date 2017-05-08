@@ -19,6 +19,15 @@ path=$YNH_APP_ARG_PATH
 admin=$YNH_APP_ARG_ADMIN
 language=$YNH_APP_ARG_LANGUAGE
 is_public=$YNH_APP_ARG_IS_PUBLIC
+github_key=$YNH_APP_ARG_GITHUB_KEY
+github_secret=$YNH_APP_ARG_GITHUB_SECRET
+github_scope=$YNH_APP_ARG_GITHUB_SCOPE
+bitbucket_key=$YNH_APP_ARG_BITBUCKET_KEY
+bitbucket_secret=$YNH_APP_ARG_BITBUCKET_SECRET
+twitter_key=$YNH_APP_ARG_TWITTER_KEY
+twitter_secret=$YNH_APP_ARG_TWITTER_SECRET
+openstreetmap_key=$YNH_APP_ARG_OPENSTREETMAP_KEY
+openstreetmap_secret=$YNH_APP_ARG_OPENSTREETMAP_SECRET
 
 app=$YNH_APP_INSTANCE_NAME
 
@@ -69,30 +78,7 @@ sudo bash -c "source ${final_path}/venv/bin/activate && wget https://raw.githubu
 # Replace variables configuration 
 secret=$(ynh_string_random 24)
 language="$(echo $language | head -c 2)"
-# sudo sed -i "s@You@$admin@g" "${localfile}"
-# sudo sed -i "s@your\@email@$admin\@$domain@g" "${localfile}"
-# sudo sed -i "s@SECRET_KEY = '!!change me!!'@SECRET_KEY = '${secret}'@g" "${localfile}"
-# sudo sed -i "s@STATIC_ROOT = '/home/srv/var/static'@STATIC_ROOT = '${final_path}/static'@g" "${localfile}"
-# sudo sed -i "s@MEDIA_ROOT = '/home/srv/umap/var/data'@MEDIA_ROOT = '${final_path}/data'@g" "${localfile}"
-# sudo sed -i "s@UMAP_DEMO_SITE = True@UMAP_DEMO_SITE = False@g" "${localfile}"
-# sudo sed -i "s@LANGUAGE_CODE = 'en'@LANGUAGE_CODE = '${language}'@g" "${localfile}"
-
-if test -n "${admin:-}"; then
-	ynh_substitute_char "You" "$admin" "$localfile"
-	ynh_substitute_char "your@email" "$admin@$domain" "$localfile"
-fi
-if test -n "${secret:-}"; then
-	ynh_substitute_char "SECRET_KEY = '!!change me!!'" "SECRET_KEY = '$secret'" "$localfile"
-fi
-if test -n "${final_path:-}"; then
-	ynh_substitute_char "STATIC_ROOT = '/home/srv/var/static'" "STATIC_ROOT = '$final_path/static'" "$localfile"
-	ynh_substitute_char "MEDIA_ROOT = '/home/srv/umap/var/data'" "MEDIA_ROOT = '$final_path/data'" "$localfile"
-fi
-if test -n "${language:-}"; then
-	ynh_substitute_char "LANGUAGE_CODE = 'en'" "LANGUAGE_CODE = '$language'" "$localfile"
-fi
-ynh_substitute_char "UMAP_DEMO_SITE = True" "UMAP_DEMO_SITE = False" "$localfile"
-
+ynh_replace_config_umap
 
 # Create STATIC & MEDIA dir
 sudo mkdir "${final_path}/static"
