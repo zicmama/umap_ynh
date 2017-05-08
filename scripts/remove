@@ -28,7 +28,7 @@ then
 	sudo yunohost service remove umap.uwsgi
 fi
 
-ynh_secure_remove "/etc/uwsgi/apps-enabled/${app}.uwsgi.ini"
+ynh_secure_remove "/etc/uwsgi/apps-enabled"
 
 # Delete directory application
 ynh_secure_remove "/opt/${app}"
