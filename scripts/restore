@@ -1,5 +1,4 @@
 #!/bin/bash
-# This restore script is adapted to Yunohost >=2.4
 
 # Exit on command errors and treat unset variables as an error
 set -eu
@@ -54,9 +53,6 @@ sudo cp -a ./sources "$final_path"
 
 # Set permissions
 sudo chown -R $app: "$final_path"
-
-# Acl for Postgres user
-# sudo setfacl -R -m u:postgres:r $YNH_APP_BACKUP_DIR || true
 
 pushd $final_path
 

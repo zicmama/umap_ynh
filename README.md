@@ -40,5 +40,5 @@ Source: [UMap](http://wiki.openstreetmap.org/wiki/UMap)
 - [x] Add language
 - [x] Create scripts remove/upgrade/restore
 - [ ] Fix restore
-- [ ] Use helper ynh_replace_string
+- [x] Use helper ynh_replace_string
 - [ ] Add token Github + Bitbucket + Twitter + OSM
