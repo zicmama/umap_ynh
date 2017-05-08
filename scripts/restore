@@ -75,7 +75,7 @@ sudo pg_dump --role=umap -U root umap < $YNH_APP_BACKUP_DIR/umap_db.sql
 popd
 
 # Create symlink for uwsgi
-sudo mkdir -p /etc/uwsgi/apps-enabled/ || true
+sudo mkdir -p /etc/uwsgi/apps-enabled || true
 sudo ln -s $final_path/uwsgi.ini /etc/uwsgi/apps-enabled/umap.uwsgi.ini || true
 
 # Restore nginx configuration files

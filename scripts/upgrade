@@ -22,13 +22,13 @@ path=$(ynh_app_setting_get "$app" path)
 admin=$(ynh_app_setting_get "$app" admin)
 language=$(ynh_app_setting_get "$app" language)
 
-CHECK_PATH	# Checks and corrects the syntax of the path.
-
 # Check if admin is not null
 if [[ "$admin" = "" || "$language" = "" ]]; then
     echo "Unable to upgrade, please contact support"
     ynh_die
 fi
+
+CHECK_PATH	# Checks and corrects the syntax of the path.
 
 final_path=/opt/$app
 

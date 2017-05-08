@@ -63,18 +63,19 @@ sudo chown -R umap: $final_path
 sudo su $app -c "virtualenv -p /usr/bin/python3 --distribute --no-site-packages ${final_path}/venv"
 sudo bash -c "source ${final_path}/venv/bin/activate && pip3 install umap-project && pip3 install uwsgi"
 
-sudo bash -c "source ${final_path}/venv/bin/activate && wget https://raw.githubusercontent.com/umap-project/umap/master/umap/settings/local.py.sample -O ${final_path}/venv/local.py"
+localfile="${final_path}/venv/local.py"
+sudo bash -c "source ${final_path}/venv/bin/activate && wget https://raw.githubusercontent.com/umap-project/umap/master/umap/settings/local.py.sample -O ${localfile}"
 
 # Replace variables configuration 
 secret=$(ynh_string_random 24)
 language="$(echo $language | head -c 2)"
-sudo sed -i "s@You@$admin@g" "${final_path}/venv/local.py"
-sudo sed -i "s@your\@email@$admin\@$domain@g" "${final_path}/venv/local.py"
-sudo sed -i "s@SECRET_KEY = '!!change me!!'@SECRET_KEY = '${secret}'@g" "${final_path}/venv/local.py"
-sudo sed -i "s@STATIC_ROOT = '/home/srv/var/static'@STATIC_ROOT = '${final_path}/static'@g" "${final_path}/venv/local.py"
-sudo sed -i "s@MEDIA_ROOT = '/home/srv/umap/var/data'@MEDIA_ROOT = '${final_path}/data'@g" "${final_path}/venv/local.py"
-sudo sed -i "s@UMAP_DEMO_SITE = True@UMAP_DEMO_SITE = False@g" "${final_path}/venv/local.py"
-sudo sed -i "s@LANGUAGE_CODE = 'en'@LANGUAGE_CODE = '${language}'@g" "${final_path}/venv/local.py"
+sudo sed -i "s@You@$admin@g" "${localfile}"
+sudo sed -i "s@your\@email@$admin\@$domain@g" "${localfile}"
+sudo sed -i "s@SECRET_KEY = '!!change me!!'@SECRET_KEY = '${secret}'@g" "${localfile}"
+sudo sed -i "s@STATIC_ROOT = '/home/srv/var/static'@STATIC_ROOT = '${final_path}/static'@g" "${localfile}"
+sudo sed -i "s@MEDIA_ROOT = '/home/srv/umap/var/data'@MEDIA_ROOT = '${final_path}/data'@g" "${localfile}"
+sudo sed -i "s@UMAP_DEMO_SITE = True@UMAP_DEMO_SITE = False@g" "${localfile}"
+sudo sed -i "s@LANGUAGE_CODE = 'en'@LANGUAGE_CODE = '${language}'@g" "${localfile}"
 
 # Create STATIC & MEDIA dir
 sudo mkdir "${final_path}/static"
@@ -84,9 +85,13 @@ sudo mkdir "${final_path}/data"
 # sudo bash -c "source ${final_path}/venv/bin/activate && env = UMAP_SETTINGS=${final_path}/venv/local.py"
 
 # Install umap
-sudo bash -c "source ${final_path}/venv/bin/activate && export UMAP_SETTINGS=${final_path}/venv/local.py && umap migrate && echo yes | umap collectstatic && umap storagei18n"
+sudo bash -c "source ${final_path}/venv/bin/activate && export UMAP_SETTINGS=${localfile} && umap migrate && echo yes | umap collectstatic && umap storagei18n"
 # Create superuser
-sudo bash -c "source ${final_path}/venv/bin/activate && export UMAP_SETTINGS=${final_path}/venv/local.py && umap createsuperuser --username ${admin} --email ${admin}@${domain} --noinput"
+sudo bash -c "source ${final_path}/venv/bin/activate && export UMAP_SETTINGS=${localfile} && umap createsuperuser --username ${admin} --email ${admin}@${domain} --noinput"
+
+# Create datalayer directory
+sudo mkdir /opt/umap/data/datalayer
+sudo chown -R umap:users /opt/umap/data/datalayer
 
 # Copy Files
 sudo cp ../conf/uwsgi_params $final_path/uwsgi_params
