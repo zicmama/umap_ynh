@@ -66,6 +66,79 @@
                     "fr": "Est-ce un site public ?"
                 },
                 "default": "true"
+            },
+            {
+                "name": "github_key",
+                "optional": "True",
+                "ask": {
+                    "en": "GitHub Key (Optional field)",
+                    "fr": "Clé GitHub (Champs optionnel)"
+                }
+            },
+            {
+                "name": "github_secret",
+                "optional": "True",
+                "ask": {
+                    "en": "GitHub Secret Key (Optional field)",
+                    "fr": "Clé secret GitHub (Champs optionnel)"
+                }
+            },
+            {
+                "name": "github_scope",
+                "optional": "True",
+                "ask": {
+                    "en": "GitHub Scope (Optional field)",
+                    "fr": "GitHub Scope (Champs optionnel)"
+                },
+                "example": "[\"user:email\", ]"
+            },
+            {
+                "name": "bitbucket_key",
+                "optional": "True",
+                "ask": {
+                    "en": "Bitbucket Key (Optional field)",
+                    "fr": "Clé Bitbucket (Champs optionnel)"
+                }
+            },
+            {
+                "name": "bitbucket_secret",
+                "optional": "True",
+                "ask": {
+                    "en": "Bitbucket Secret Key (Optional field)",
+                    "fr": "Clé secret Bitbucket (Champs optionnel)"
+                }
+            },
+            {
+                "name": "twitter_key",
+                "optional": "True",
+                "ask": {
+                    "en": "Twitter Key (Optional field)",
+                    "fr": "Clé Twitter (Champs optionnel)"
+                }
+            },
+            {
+                "name": "twitter_secret",
+                "optional": "True",
+                "ask": {
+                    "en": "Twitter Secret Key (Optional field)",
+                    "fr": "Clé secret Twitter (Champs optionnel)"
+                }
+            },
+            {
+                "name": "openstreetmap_key",
+                "optional": "True",
+                "ask": {
+                    "en": "Openstreetmap Key (Optional field)",
+                    "fr": "Clé Openstreetmap (Champs optionnel)"
+                }
+            },
+            {
+                "name": "openstreetmap_secret",
+                "optional": "True",
+                "ask": {
+                    "en": "Openstreetmap Secret Key (Optional field)",
+                    "fr": "Clé secret Openstreetmap (Champs optionnel)"
+                }
             }
         ]
     }
