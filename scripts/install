@@ -94,6 +94,7 @@ sudo cp ../conf/uwsgi.ini $final_path/uwsgi.ini
 sudo sed -i "s@__APP__@$app@g" $final_path/uwsgi.ini
 
 # Config service
+sudo mkdir -p /etc/uwsgi/apps-enabled/
 sudo ln -s $final_path/uwsgi.ini /etc/uwsgi/apps-enabled/umap.uwsgi.ini
 
 # Start service
